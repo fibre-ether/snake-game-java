@@ -3,6 +3,8 @@ import javax.swing.JPanel;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.event.KeyListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -34,10 +36,12 @@ class Game extends JFrame {
     Deque<Integer> snakeX = new LinkedList<Integer>();
     Deque<Integer> snakeY = new LinkedList<Integer>();
     int[] food = new int[2];
-    final int WIDTH = 300;
-    final int HEIGHT = 300;
+    final static int WIDTH = 500;
+    final static int HEIGHT = 500;
     final int APPLE_SIZE = HEIGHT / 30;
-    public boolean gameOver = false;
+    public static boolean gameOver = false;
+    static int BLOCK_SIZE = 10;
+    static int score = 0;
     public static int[] appleLocation = { 1, 1 };
     public static int[] direction = { 1, 0 };
 
@@ -64,7 +68,7 @@ class Game extends JFrame {
         try {
             placeApple();
             while (!gameOver) {
-                Thread.sleep(100);
+                Thread.sleep(100 / (1 + score / 2));
                 moveSnake();
                 checkCollision();
                 panel.refresh(food, direction, snakeX, snakeY);
@@ -87,17 +91,17 @@ class Game extends JFrame {
 
     private void placeApple() {
 
-        int xLimit = WIDTH / 10;
-        int yLimit = HEIGHT / 10;
+        int xLimit = WIDTH / BLOCK_SIZE;
+        int yLimit = HEIGHT / BLOCK_SIZE;
 
         appleLocation[0] = -1;
         appleLocation[1] = -1;
 
         while (appleLocation[0] < 0 || snakeX.contains(appleLocation[0]) || appleLocation[1] < 0
                 || snakeY.contains(appleLocation[1])) {
-            int randomX = 10 * (int) (Math.random() * xLimit);
-            int randomY = 10 * (int) (Math.random() * yLimit);
-            appleLocation[0] = randomX - 3 * APPLE_SIZE;
+            int randomX = BLOCK_SIZE * (int) (Math.random() * xLimit);
+            int randomY = BLOCK_SIZE * (int) (Math.random() * yLimit);
+            appleLocation[0] = randomX - 3 * APPLE_SIZE - 2;
             appleLocation[1] = randomY - 5 * APPLE_SIZE;
         }
     }
@@ -105,7 +109,8 @@ class Game extends JFrame {
     private void checkCollision() {
         // apple collision
         if (10 * snakeX.getFirst() == appleLocation[0] && 10 * snakeY.getFirst() == appleLocation[1]) {
-            System.out.println("Apple eaten");
+            score++;
+            System.out.println("Apple eaten | score: " + score);
             placeApple();
             feedSnake();
         }
@@ -133,7 +138,7 @@ class Game extends JFrame {
         snakeY.addFirst(headY);
 
         // wall collision
-        if (headX > 28 || headY > 26 || headX < 0 || headY < 0) {
+        if (headX > (WIDTH / BLOCK_SIZE - 2) || headY > (WIDTH / BLOCK_SIZE - 4) || headX < 0 || headY < 0) {
             System.out.println("Collided with wall");
             gameOver = true;
         }
@@ -162,9 +167,7 @@ class Game extends JFrame {
 }
 
 class GamePanel extends JPanel {
-    int xPos = 10;
-    int yPos = 10;
-    int BLOCK_SIZE = 7;
+    int ITEM_SIZE = 7;
 
     Deque<Integer> snakeX = new LinkedList<Integer>();
     Deque<Integer> snakeY = new LinkedList<Integer>();
@@ -179,15 +182,31 @@ class GamePanel extends JPanel {
         Iterator<Integer> x = snakeX.iterator();
         Iterator<Integer> y = snakeY.iterator();
         // render apple
-        //System.out.println("apple location: " + Game.appleLocation[0] + " " + Game.appleLocation[0]);
+        // System.out.println("apple location: " + Game.appleLocation[0] + " " +
+        // Game.appleLocation[0]);
         graphic2d.setColor(Color.RED);
-        graphic2d.fillRect(Game.appleLocation[0], Game.appleLocation[1], BLOCK_SIZE, BLOCK_SIZE);
+        graphic2d.fillRect(Game.appleLocation[0], Game.appleLocation[1], ITEM_SIZE, ITEM_SIZE);
         // render snake
         graphic2d.setColor(Color.BLUE);
         while (x.hasNext() && y.hasNext()) {
             int xVal = x.next();
             int yVal = y.next();
-            graphic2d.fillRect(xVal * 10, yVal * 10, BLOCK_SIZE, BLOCK_SIZE);
+            graphic2d.fillRect(xVal * Game.BLOCK_SIZE, yVal * Game.BLOCK_SIZE, ITEM_SIZE, ITEM_SIZE);
+        }
+        // render score
+        Font scoreFont = new Font("default", Font.BOLD, 25);
+        FontMetrics scoreFontMetrics = graphic2d.getFontMetrics(scoreFont);
+        graphic2d.setFont(scoreFont);
+        graphic2d.drawString("Score: " + Game.score, 10, scoreFontMetrics.getHeight());
+
+        // render game over
+        if (Game.gameOver) {
+            Font gameOverFont = new Font("default", Font.BOLD, 50);
+            graphic2d.setFont(gameOverFont);
+            graphic2d.setColor(Color.BLACK);
+            FontMetrics gameOverFontMetrics = graphic2d.getFontMetrics(gameOverFont);
+            graphic2d.drawString("Game Over", Game.WIDTH / 2 - gameOverFontMetrics.stringWidth("Game Over") / 2,
+                    Game.HEIGHT / 2 - gameOverFontMetrics.getHeight() / 2);
         }
     }
 
